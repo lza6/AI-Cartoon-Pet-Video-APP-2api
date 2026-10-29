@@ -1,0 +1,14 @@
+# runtime / local artifacts
+__pycache__/
+*.pyc
+accounts.json
+*.log
+*.err
+
+# reverse-engineering working dirs (never committed: APK, decompiled trees, media)
+../raw/
+../jadx/
+../disasm*.txt
+../extract.py
+*.apk
+*.xapk

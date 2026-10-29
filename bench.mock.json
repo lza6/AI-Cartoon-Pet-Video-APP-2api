@@ -1,0 +1,54 @@
+[
+  {
+    "route": "/health",
+    "requests": 6864,
+    "ok": 6864,
+    "fail": 0,
+    "rps": 858.0,
+    "p50_ms": 13.96,
+    "p95_ms": 54.54,
+    "p99_ms": 172.63,
+    "max_ms": 417.47,
+    "mean_ms": 22.42,
+    "wall_s": 8.01
+  },
+  {
+    "route": "/v1/models",
+    "requests": 11592,
+    "ok": 11592,
+    "fail": 0,
+    "rps": 1449.0,
+    "p50_ms": 10.51,
+    "p95_ms": 30.21,
+    "p99_ms": 71.36,
+    "max_ms": 154.19,
+    "mean_ms": 13.79,
+    "wall_s": 8.01
+  },
+  {
+    "route": "/v1/images/generations",
+    "requests": 4295,
+    "ok": 4295,
+    "fail": 0,
+    "rps": 536.9,
+    "p50_ms": 19.73,
+    "p95_ms": 114.98,
+    "p99_ms": 182.17,
+    "max_ms": 267.04,
+    "mean_ms": 37.26,
+    "wall_s": 8.02
+  },
+  {
+    "route": "/v1/videos/generations/sync",
+    "requests": 9917,
+    "ok": 9917,
+    "fail": 0,
+    "rps": 1239.6,
+    "p50_ms": 11.6,
+    "p95_ms": 35.95,
+    "p99_ms": 84.57,
+    "max_ms": 229.06,
+    "mean_ms": 16.12,
+    "wall_s": 8.01
+  }
+]

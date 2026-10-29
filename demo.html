@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Cartoon Pet Video · 2API Demo</title>
+<style>
+  :root{
+    --bg:#0d1017; --panel:#141a24; --panel2:#1b2432; --line:#25313f;
+    --fg:#e6edf6; --dim:#8b9bb0; --accent:#5b8cff; --ok:#39d98a; --warn:#ffb020; --bad:#ff5c5c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0d1017,#0a0d12 60%);color:var(--fg);
+       font:14px/1.6 -apple-system,"Segoe UI",system-ui,"Microsoft YaHei",sans-serif}
+  header{padding:22px 28px 14px;border-bottom:1px solid var(--line);display:flex;
+         align-items:center;gap:14px;flex-wrap:wrap}
+  header h1{margin:0;font-size:18px;font-weight:650;letter-spacing:.3px}
+  .tag{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--panel2);
+       border:1px solid var(--line);color:var(--dim)}
+  .tag.ok{color:var(--ok);border-color:#1d4d38}
+  .tag.bad{color:var(--bad);border-color:#4d1d1d}
+  main{display:grid;grid-template-columns:minmax(340px,420px) 1fr;gap:18px;padding:18px 28px 40px}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .card h2{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim)}
+  label{display:block;font-size:12px;color:var(--dim);margin:10px 0 4px}
+  textarea,input,select{width:100%;background:var(--panel2);border:1px solid var(--line);
+       color:var(--fg);border-radius:9px;padding:9px 11px;font:inherit;outline:none}
+  textarea{min-height:82px;resize:vertical}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1}
+  button{cursor:pointer;border:none;border-radius:9px;padding:10px 14px;font:inherit;font-weight:600;
+         background:var(--accent);color:#fff;transition:.15s}
+  button:hover{filter:brightness(1.1)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:var(--panel2);color:var(--fg);border:1px solid var(--line)}
+  .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .tabs button{padding:7px 13px;font-size:12.5px;background:var(--panel2);color:var(--dim);
+               border:1px solid var(--line)}
+  .tabs button.active{background:var(--accent);color:#fff;border-color:transparent}
+  pre{background:#0a0e14;border:1px solid var(--line);border-radius:10px;padding:12px;
+      overflow:auto;max-height:240px;font-size:12px;margin:10px 0 0}
+  .out{min-height:240px;display:flex;align-items:center;justify-content:center;
+       background:#0a0e14;border:1px dashed var(--line);border-radius:12px;padding:14px}
+  .out img,.out video{max-width:100%;max-height:420px;border-radius:10px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px}
+  .kv span:nth-child(odd){color:var(--dim)}
+  .acc{font-family:ui-monospace,Consolas,monospace;font-size:11.5px}
+  .bar{height:6px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-top:3px}
+  .bar>i{display:block;height:100%;background:var(--accent)}
+  .hint{font-size:11.5px;color:var(--dim);margin-top:8px}
+  .spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);
+        border-radius:50%;animation:sp .8s linear infinite;display:inline-block;vertical-align:-3px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>AI Cartoon Pet Video · 2API Demo</h1>
+  <span class="tag" id="modeTag">mode: ?</span>
+  <span class="tag" id="accTag">accounts: ?</span>
+  <span class="tag" id="healthTag">…</span>
+</header>
+
+<main>
+  <section class="card">
+    <h2>请求</h2>
+    <div class="tabs" id="tabs">
+      <button data-mode="t2v" class="active">文生视频</button>
+      <button data-mode="t2i">文生图</button>
+      <button data-mode="enhance">4x 超分</button>
+      <button data-mode="aging">人脸老化</button>
+    </div>
+
+    <div id="promptWrap">
+      <label>prompt</label>
+      <textarea id="prompt">A chubby orange kitten wearing sunglasses dances in a sunny park, cinematic</textarea>
+    </div>
+
+    <div id="fileWrap" style="display:none">
+      <label>图片（multipart 字段 image）</label>
+      <input type="file" id="file" accept="image/*" />
+    </div>
+
+    <div class="row" id="videoOpts">
+      <div>
+        <label>aspect_ratio</label>
+        <select id="aspect"><option>9:16</option><option>16:9</option><option>1:1</option></select>
+      </div>
+      <div>
+        <label>ai_sound</label>
+        <select id="sound"><option value="1">1 · 带音效</option><option value="0">0 · 静音</option></select>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;display:flex;gap:10px">
+      <button id="go" style="flex:2">发送请求</button>
+      <button id="quota" class="ghost" style="flex:1">刷新账号池</button>
+    </div>
+    <div class="hint" id="hint">上游 t2p.aritek.app · Sign 走官方证书 SHA1 · 每个 Device-Id 独立免费额度</div>
+    <pre id="raw">// 响应会显示在这里</pre>
+  </section>
+
+  <section class="card">
+    <h2>结果</h2>
+    <div class="out" id="out"><span class="tag">还没有内容</span></div>
+    <div style="margin-top:14px" class="kv" id="meta"></div>
+    <h2 style="margin-top:18px">账号池 / 免费额度</h2>
+    <div id="pool" class="acc" style="max-height:210px;overflow:auto"></div>
+  </section>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let mode = 't2v';
+
+document.querySelectorAll('#tabs button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('#tabs button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    mode = b.dataset.mode;
+    const isFile = mode === 'enhance' || mode === 'aging';
+    $('#promptWrap').style.display = isFile ? 'none' : 'block';
+    $('#fileWrap').style.display = isFile ? 'block' : 'none';
+    $('#videoOpts').style.display = mode === 't2v' ? 'flex' : 'none';
+  };
+});
+
+async function health() {
+  try {
+    const r = await fetch('/health');
+    const j = await r.json();
+    $('#modeTag').textContent = 'mode: ' + j.mode;
+    $('#accTag').textContent = 'accounts: ' + j.accounts;
+    $('#healthTag').textContent = 'online';
+    $('#healthTag').className = 'tag ok';
+  } catch (e) {
+    $('#healthTag').textContent = 'offline';
+    $('#healthTag').className = 'tag bad';
+  }
+}
+
+async function pool() {
+  try {
+    const r = await fetch('/native/quota');
+    const j = await r.json();
+    const free = { t2v_prompt: 10, t2i_prompt: 3, image_enhance: 100, image_aging: 100 };
+    $('#pool').innerHTML = j.accounts.map(a => {
+      const rows = Object.keys(free).map(k => {
+        const used = a.used[k] || 0;
+        const pct = Math.min(100, used / free[k] * 100);
+        return `<div style="display:flex;gap:8px;align-items:center;margin:2px 0">
+          <span style="width:96px;color:#8b9bb0">${k}</span>
+          <div class="bar" style="flex:1"><i style="width:${pct}%;background:${pct>80?'#ff5c5c':'#5b8cff'}"></i></div>
+          <span style="width:52px;text-align:right">${used}/${free[k]}</span></div>`;
+      }).join('');
+      return `<div style="border-bottom:1px solid #25313f;padding:7px 0">
+        <div style="color:#e6edf6">${a.device_id} <span style="color:#8b9bb0">· ${a.ctry_target}</span>
+        ${a.dead ? '<span style="color:#ff5c5c"> · dead</span>' : ''}</div>${rows}</div>`;
+    }).join('') || '<span class="tag">空</span>';
+  } catch (e) { /* ignore */ }
+}
+
+function showMeta(obj) {
+  $('#meta').innerHTML = Object.entries(obj).map(([k, v]) =>
+    `<span>${k}</span><span>${typeof v === 'object' ? JSON.stringify(v) : v}</span>`).join('');
+}
+
+$('#quota').onclick = () => { pool(); health(); };
+
+$('#go').onclick = async () => {
+  const btn = $('#go');
+  btn.disabled = true;
+  const t0 = performance.now();
+  $('#out').innerHTML = '<span class="spin"></span>';
+  $('#raw').textContent = '// 请求中…';
+  try {
+    if (mode === 't2v') {
+      const body = { prompt: $('#prompt').value, aspect_ratio: $('#aspect').value,
+                     ai_sound: Number($('#sound').value) };
+      const r = await fetch('/v1/videos/generations/sync',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await r.json();
+      $('#raw').textContent = JSON.stringify(j, null, 2);
+      const url = j?.data?.[0]?.url;
+      if (!url) throw new Error(j?.error?.message || 'no url');
+      $('#out').innerHTML = `<video src="${url}" controls autoplay muted playsinline></video>`;
+      showMeta({ 耗时: Math.round(performance.now() - t0) + ' ms', 类型: 'video', url });
+    } else if (mode === 't2i') {
+      const body = { prompt: $('#prompt').value };
+      const r = await fetch('/v1/images/generations',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await r.json();
+      $('#raw').textContent = JSON.stringify(j, null, 2);
+      const url = j?.data?.[0]?.url;
+      if (!url) throw new Error(j?.error?.message || 'no url');
+      $('#out').innerHTML = `<img src="${url}" alt="result">`;
+      showMeta({ 耗时: Math.round(performance.now() - t0) + ' ms', 类型: 'image 1024x1024', url });
+    } else {
+      const f = $('#file').files[0];
+      if (!f) throw new Error('请先选择一张图片');
+      const fd = new FormData();
+      fd.append('image', f);
+      const r = await fetch('/v1/images/' + mode, { method: 'POST', body: fd });
+      const j = await r.json();
+      $('#raw').textContent = JSON.stringify(j, null, 2);
+      const url = j?.data?.[0]?.url;
+      if (!url) throw new Error(j?.error?.message || 'no url');
+      $('#out').innerHTML = `<img src="${url}" alt="result">`;
+      showMeta({ 耗时: Math.round(performance.now() - t0) + ' ms', 类型: mode, url });
+    }
+  } catch (e) {
+    $('#out').innerHTML = `<span class="tag bad">${e.message}</span>`;
+    showMeta({ 错误: e.message });
+  } finally {
+    btn.disabled = false;
+    pool();
+  }
+};
+
+health(); pool();
+setInterval(health, 15000);
+</script>
+</body>
+</html>
